@@ -60,10 +60,10 @@ public final class MenuButton {
         float h = AnimationUtils.easeOutCubic(hoverProgress);
         float radius = 8f;
 
-        // Outer Glow / Drop Shadow on hover
+        // Outer Glow on hover
         if (h > 0.01f) {
-            int glowColor = ColorUtils.rgba(110, 231, 255, (int) (65 * h));
-            renderer.glow(x, y, width, height, radius, 12f * h, glowColor);
+            int glowColor = ColorUtils.rgba(110, 231, 255, (int) (60 * h));
+            renderer.glow(x, y, width, height, radius, 10f * h, glowColor);
         }
 
         // Glassmorphic Body Background
@@ -72,10 +72,8 @@ public final class MenuButton {
         renderer.roundedGradient(x, y, width, height, radius, bgTop, bgTop, bgBottom, bgBottom);
 
         // Animated Glass Border
-        int borderTL = ColorUtils.lerp(ColorUtils.rgba(110, 231, 255, 30), ColorUtils.rgba(110, 231, 255, 180), h);
-        int borderBR = ColorUtils.lerp(ColorUtils.rgba(181, 140, 255, 20), ColorUtils.rgba(181, 140, 255, 140), h);
-        renderer.roundedGradient(x, y, width, height, radius, radius, radius, radius,
-                0, 0, 0, 0, 1.2f, borderTL);
+        int borderTL = ColorUtils.lerp(ColorUtils.rgba(110, 231, 255, 35), ColorUtils.rgba(255, 255, 255, 200), h);
+        renderer.roundedOutline(x, y, width, height, radius, 1.2f, borderTL);
 
         // Left accent bar
         float barHeight = height * (0.35f + 0.45f * h);

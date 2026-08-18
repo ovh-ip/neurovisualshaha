@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GL30;
 import dev.testvisuals.gl.GLUtil;
 import dev.testvisuals.gl.MatrixStack2D;
 import dev.testvisuals.gl.ShaderProgram;
+import dev.testvisuals.util.ColorUtils;
 
 public final class Renderer2D {
 
@@ -21,7 +22,7 @@ public final class Renderer2D {
     private static final int MODE_FLAT = 0;
     private static final int MODE_TEXTURED = 1;
     private static final int FLOATS_PER_VERTEX = 8;
-    private static final int INITIAL_CAPACITY = 1 << 16;
+    private static final int INITIAL_CAPACITY = 1 << 17;
 
     private FloatBuffer buffer;
     private int vertexCount;
@@ -33,8 +34,6 @@ public final class Renderer2D {
 
     private final ShaderProgram colorShader;
     private final ShaderProgram textureShader;
-    private final ShaderProgram roundedShader;
-    private final ShaderProgram circleShader;
 
     private final Matrix4f orthoMatrix = new Matrix4f();
     private final Matrix4f combinedMatrix = new Matrix4f();
@@ -66,16 +65,18 @@ public final class Renderer2D {
                 "/assets/testvisuals/shaders/quad_flat.frag", new String[]{"aPos", "aUV", "aColor"});
         textureShader = ShaderProgram.load("/assets/testvisuals/shaders/quad.vert",
                 "/assets/testvisuals/shaders/quad_tex.frag", new String[]{"aPos", "aUV", "aColor"});
-        roundedShader = ShaderProgram.load("/assets/testvisuals/shaders/quad.vert",
-                "/assets/testvisuals/shaders/rounded_rect.frag", new String[]{"aPos", "aUV", "aColor"});
-        circleShader = ShaderProgram.load("/assets/testvisuals/shaders/quad.vert",
-                "/assets/testvisuals/shaders/circle.frag", new String[]{"aPos", "aUV", "aColor"});
     }
 
     public void begin(float width, float height) {
         flush();
-        orthoMatrix.setOrtho(0f, width, height, 0f, -100f, 100f);
+        orthoMatrix.setOrtho(0f, width, height, 0f, 1000f, -1000f);
         matrixStack.reset();
+
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDepthMask(false);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
     }
 
     public void setSaturate(float s) {
@@ -160,83 +161,114 @@ public final class Renderer2D {
         quad(x + w - thickness, y + thickness, thickness, h - thickness * 2f, color);
     }
 
-    // ==================== SDF Rounded Rectangles ====================
+    // ==================== Rounded Rectangles ====================
 
     public void roundedRect(float x, float y, float w, float h, float radius, int color) {
-        roundedRect(x, y, w, h, radius, radius, radius, radius, color);
+        roundedGradient(x, y, w, h, radius, radius, radius, radius, color, color, color, color);
     }
 
     public void roundedRect(float x, float y, float w, float h, float tl, float tr, float br, float bl, int color) {
-        roundedGradient(x, y, w, h, tl, tr, br, bl, color, color, color, color, 0f, 0);
+        roundedGradient(x, y, w, h, tl, tr, br, bl, color, color, color, color);
     }
 
     public void roundedGradient(float x, float y, float w, float h, float radius, int cTL, int cTR, int cBR, int cBL) {
-        roundedGradient(x, y, w, h, radius, radius, radius, radius, cTL, cTR, cBR, cBL, 0f, 0);
-    }
-
-    public void roundedOutline(float x, float y, float w, float h, float radius, float thickness, int color) {
-        roundedGradient(x, y, w, h, radius, radius, radius, radius, 0, 0, 0, 0, thickness, color);
-    }
-
-    public void roundedBordered(float x, float y, float w, float h, float radius, float borderWidth, int fillColor, int borderColor) {
-        roundedGradient(x, y, w, h, radius, radius, radius, radius, fillColor, fillColor, fillColor, fillColor, borderWidth, borderColor);
+        roundedGradient(x, y, w, h, radius, radius, radius, radius, cTL, cTR, cBR, cBL);
     }
 
     public void roundedGradient(float x, float y, float w, float h,
                                 float tl, float tr, float br, float bl,
-                                int cTL, int cTR, int cBR, int cBL,
-                                float borderWidth, int borderColor) {
-        flush();
-        prepareSdfShader(roundedShader);
+                                int cTL, int cTR, int cBR, int cBL) {
+        float maxR = Math.min(w, h) * 0.5f;
+        tl = Math.min(tl, maxR);
+        tr = Math.min(tr, maxR);
+        br = Math.min(br, maxR);
+        bl = Math.min(bl, maxR);
 
-        roundedShader.setVec4("uRect", x, y, w, h);
-        roundedShader.setVec4("uRadius", tl, tr, br, bl);
-        setShaderColor(roundedShader, "uColorTL", cTL);
-        setShaderColor(roundedShader, "uColorTR", cTR);
-        setShaderColor(roundedShader, "uColorBR", cBR);
-        setShaderColor(roundedShader, "uColorBL", cBL);
-        setShaderColor(roundedShader, "uBorderColor", borderColor);
-        roundedShader.setFloat("uBorderWidth", borderWidth);
-        roundedShader.setFloat("uSoftness", 1.0f);
-        roundedShader.setFloat("uShadow", 0.0f);
+        if (tl <= 0.5f && tr <= 0.5f && br <= 0.5f && bl <= 0.5f) {
+            gradientQuad4(x, y, w, h, cTL, cTR, cBR, cBL);
+            return;
+        }
 
-        drawSdfQuad(x, y, w, h);
+        setMode(MODE_FLAT);
+
+        // Center body
+        gradientQuad4(x + bl, y + tl, w - bl - tr, h - tl - br, cTL, cTR, cBR, cBL);
+        // Top rect
+        gradientQuad4(x + tl, y, w - tl - tr, tl, cTL, cTR, cTR, cTL);
+        // Bottom rect
+        gradientQuad4(x + bl, y + h - br, w - bl - br, br, cBL, cBR, cBR, cBL);
+        // Left rect
+        gradientQuad4(x, y + tl, bl, h - tl - bl, cTL, cTL, cBL, cBL);
+        // Right rect
+        gradientQuad4(x + w - tr, y + tr, tr, h - tr - br, cTR, cTR, cBR, cBR);
+
+        // Corner Fans
+        drawCornerFan(x + tl, y + tl, tl, (float) Math.PI, (float) (Math.PI * 1.5), cTL, 8);
+        drawCornerFan(x + w - tr, y + tr, tr, (float) (Math.PI * 1.5), (float) (Math.PI * 2.0), cTR, 8);
+        drawCornerFan(x + w - br, y + h - br, br, 0f, (float) (Math.PI * 0.5), cBR, 8);
+        drawCornerFan(x + bl, y + h - bl, bl, (float) (Math.PI * 0.5), (float) Math.PI, cBL, 8);
+    }
+
+    public void roundedOutline(float x, float y, float w, float h, float radius, float thickness, int color) {
+        float maxR = Math.min(w, h) * 0.5f;
+        radius = Math.min(radius, maxR);
+
+        // Straight segments
+        quad(x + radius, y, w - radius * 2f, thickness, color);
+        quad(x + radius, y + h - thickness, w - radius * 2f, thickness, color);
+        quad(x, y + radius, thickness, h - radius * 2f, color);
+        quad(x + w - thickness, y + radius, thickness, h - radius * 2f, color);
+
+        // Curved corner arcs
+        if (radius > 0.5f) {
+            drawCornerArc(x + radius, y + radius, radius, thickness, (float) Math.PI, (float) (Math.PI * 1.5), color, 8);
+            drawCornerArc(x + w - radius, y + radius, radius, thickness, (float) (Math.PI * 1.5), (float) (Math.PI * 2.0), color, 8);
+            drawCornerArc(x + w - radius, y + h - radius, radius, thickness, 0f, (float) (Math.PI * 0.5), color, 8);
+            drawCornerArc(x + radius, y + h - radius, radius, thickness, (float) (Math.PI * 0.5), (float) Math.PI, color, 8);
+        }
+    }
+
+    public void roundedBordered(float x, float y, float w, float h, float radius, float borderWidth, int fillColor, int borderColor) {
+        roundedRect(x, y, w, h, radius, fillColor);
+        if (borderWidth > 0.01f) {
+            roundedOutline(x, y, w, h, radius, borderWidth, borderColor);
+        }
     }
 
     // ==================== Drop Shadow & Glow ====================
 
     public void dropShadow(float x, float y, float w, float h, float radius, float blur, int shadowColor) {
-        drawGlowInternal(x, y, w, h, radius, blur, shadowColor, 0f, 3f);
+        glow(x, y + 2f, w, h, radius, blur, shadowColor);
     }
 
     public void glow(float x, float y, float w, float h, float radius, float blur, int glowColor) {
-        drawGlowInternal(x, y, w, h, radius, blur, glowColor, 0f, 0f);
-    }
+        int steps = 5;
+        int alpha = (glowColor >>> 24) & 0xFF;
+        int rgb = glowColor & 0x00FFFFFF;
 
-    private void drawGlowInternal(float x, float y, float w, float h, float radius, float blur, int color, float offsetX, float offsetY) {
-        flush();
-        prepareSdfShader(roundedShader);
-
-        float pad = blur * 2.0f;
-        float gx = x - pad + offsetX;
-        float gy = y - pad + offsetY;
-        float gw = w + pad * 2f;
-        float gh = h + pad * 2f;
-
-        roundedShader.setVec4("uRect", 0f, 0f, gw, gh);
-        roundedShader.setVec4("uRadius", radius, radius, radius, radius);
-        roundedShader.setFloat("uBorderWidth", 0f);
-        roundedShader.setFloat("uSoftness", blur);
-        roundedShader.setFloat("uShadow", 1.0f);
-        setShaderColor(roundedShader, "uShadowColor", color);
-
-        drawSdfQuad(gx, gy, gw, gh);
+        for (int i = steps; i >= 1; i--) {
+            float spread = (blur * i) / steps;
+            int stepAlpha = (int) (alpha * (1.0f - (float) i / (steps + 1)) * 0.35f);
+            int color = (stepAlpha << 24) | rgb;
+            roundedOutline(x - spread, y - spread, w + spread * 2f, h + spread * 2f, radius + spread, spread * 0.5f + 1f, color);
+        }
     }
 
     // ==================== Circles & Rings ====================
 
     public void circle(float cx, float cy, float radius, int color) {
-        circleGradient(cx, cy, radius, 0f, color, color);
+        int segments = Math.max(16, (int) (radius * 3.0f));
+        setMode(MODE_FLAT);
+        ensureCapacity(segments * 3);
+
+        float angleStep = (float) (Math.PI * 2.0 / segments);
+        for (int i = 0; i < segments; i++) {
+            float a1 = i * angleStep;
+            float a2 = (i + 1) * angleStep;
+            vertex(cx, cy, color);
+            vertex(cx + (float) Math.cos(a1) * radius, cy + (float) Math.sin(a1) * radius, color);
+            vertex(cx + (float) Math.cos(a2) * radius, cy + (float) Math.sin(a2) * radius, color);
+        }
     }
 
     public void circleOutline(float cx, float cy, float radius, float thickness, int color) {
@@ -244,39 +276,77 @@ public final class Renderer2D {
     }
 
     public void ring(float cx, float cy, float innerRadius, float outerRadius, int color) {
-        circleGradient(cx, cy, outerRadius, innerRadius, color, color);
+        int segments = Math.max(16, (int) (outerRadius * 3.0f));
+        setMode(MODE_FLAT);
+        ensureCapacity(segments * 6);
+
+        float angleStep = (float) (Math.PI * 2.0 / segments);
+        for (int i = 0; i < segments; i++) {
+            float a1 = i * angleStep;
+            float a2 = (i + 1) * angleStep;
+
+            float x1Out = cx + (float) Math.cos(a1) * outerRadius;
+            float y1Out = cy + (float) Math.sin(a1) * outerRadius;
+            float x2Out = cx + (float) Math.cos(a2) * outerRadius;
+            float y2Out = cy + (float) Math.sin(a2) * outerRadius;
+
+            float x1In = cx + (float) Math.cos(a1) * innerRadius;
+            float y1In = cy + (float) Math.sin(a1) * innerRadius;
+            float x2In = cx + (float) Math.cos(a2) * innerRadius;
+            float y2In = cy + (float) Math.sin(a2) * innerRadius;
+
+            vertex(x1In, y1In, color);
+            vertex(x1Out, y1Out, color);
+            vertex(x2Out, y2Out, color);
+
+            vertex(x1In, y1In, color);
+            vertex(x2Out, y2Out, color);
+            vertex(x2In, y2In, color);
+        }
     }
 
-    public void arc(float cx, float cy, float radius, float startAngle, float endAngle, float thickness, int color) {
-        flush();
-        prepareSdfShader(circleShader);
+    // ==================== Corner Helpers ====================
 
-        float dia = radius * 2f + 4f;
-        circleShader.setVec2("uCenter", cx, cy);
-        circleShader.setFloat("uRadius", radius);
-        circleShader.setFloat("uInnerRadius", Math.max(0f, radius - thickness));
-        circleShader.setVec2("uAngles", startAngle, endAngle);
-        setShaderColor(circleShader, "uColor1", color);
-        setShaderColor(circleShader, "uColor2", color);
-        circleShader.setFloat("uSoftness", 1.0f);
-
-        drawSdfQuad(cx - dia / 2f, cy - dia / 2f, dia, dia);
+    private void drawCornerFan(float cx, float cy, float radius, float startAngle, float endAngle, int color, int segments) {
+        if (radius <= 0.01f) return;
+        ensureCapacity(segments * 3);
+        float step = (endAngle - startAngle) / segments;
+        for (int i = 0; i < segments; i++) {
+            float a1 = startAngle + i * step;
+            float a2 = startAngle + (i + 1) * step;
+            vertex(cx, cy, color);
+            vertex(cx + (float) Math.cos(a1) * radius, cy + (float) Math.sin(a1) * radius, color);
+            vertex(cx + (float) Math.cos(a2) * radius, cy + (float) Math.sin(a2) * radius, color);
+        }
     }
 
-    public void circleGradient(float cx, float cy, float outerRadius, float innerRadius, int cCenter, int cOuter) {
-        flush();
-        prepareSdfShader(circleShader);
+    private void drawCornerArc(float cx, float cy, float radius, float thickness, float startAngle, float endAngle, int color, int segments) {
+        if (radius <= 0.01f) return;
+        float inner = Math.max(0f, radius - thickness);
+        ensureCapacity(segments * 6);
+        float step = (endAngle - startAngle) / segments;
+        for (int i = 0; i < segments; i++) {
+            float a1 = startAngle + i * step;
+            float a2 = startAngle + (i + 1) * step;
 
-        float dia = outerRadius * 2f + 4f;
-        circleShader.setVec2("uCenter", cx, cy);
-        circleShader.setFloat("uRadius", outerRadius);
-        circleShader.setFloat("uInnerRadius", innerRadius);
-        circleShader.setVec2("uAngles", 0f, 6.2831853f);
-        setShaderColor(circleShader, "uColor1", cCenter);
-        setShaderColor(circleShader, "uColor2", cOuter);
-        circleShader.setFloat("uSoftness", 1.0f);
+            float x1Out = cx + (float) Math.cos(a1) * radius;
+            float y1Out = cy + (float) Math.sin(a1) * radius;
+            float x2Out = cx + (float) Math.cos(a2) * radius;
+            float y2Out = cy + (float) Math.sin(a2) * radius;
 
-        drawSdfQuad(cx - dia / 2f, cy - dia / 2f, dia, dia);
+            float x1In = cx + (float) Math.cos(a1) * inner;
+            float y1In = cy + (float) Math.sin(a1) * inner;
+            float x2In = cx + (float) Math.cos(a2) * inner;
+            float y2In = cy + (float) Math.sin(a2) * inner;
+
+            vertex(x1In, y1In, color);
+            vertex(x1Out, y1Out, color);
+            vertex(x2Out, y2Out, color);
+
+            vertex(x1In, y1In, color);
+            vertex(x2Out, y2Out, color);
+            vertex(x2In, y2In, color);
+        }
     }
 
     // ==================== Lines & Polygons ====================
@@ -310,14 +380,6 @@ public final class Renderer2D {
         vertex(x1, y1, color);
         vertex(x2, y2, color);
         vertex(x3, y3, color);
-    }
-
-    public void gradientTriangle(float x1, float y1, int c1, float x2, float y2, int c2, float x3, float y3, int c3) {
-        setMode(MODE_FLAT);
-        ensureCapacity(3);
-        vertex(x1, y1, c1);
-        vertex(x2, y2, c2);
-        vertex(x3, y3, c3);
     }
 
     // ==================== Textured Quads ====================
@@ -363,6 +425,12 @@ public final class Renderer2D {
             shader.setFloat("uSaturate", saturate);
         }
 
+        GL11.glDisable(GL11.GL_CULL_FACE);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        GL11.glDepthMask(false);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
         GLUtil.bindVertexArray(vao);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         buffer.flip();
@@ -375,42 +443,6 @@ public final class Renderer2D {
         mode = MODE_NONE;
         boundTexture = -1;
         GLUtil.bindVertexArray(0);
-    }
-
-    private void prepareSdfShader(ShaderProgram shader) {
-        shader.use();
-        combinedMatrix.set(orthoMatrix);
-        shader.setMat4("uMVP", combinedMatrix);
-    }
-
-    private void drawSdfQuad(float x, float y, float w, float h) {
-        setMode(MODE_FLAT);
-        ensureCapacity(6);
-        vertexRaw(x, y, 0f, 0f, 0xFFFFFFFF);
-        vertexRaw(x + w, y, 1f, 0f, 0xFFFFFFFF);
-        vertexRaw(x + w, y + h, 1f, 1f, 0xFFFFFFFF);
-        vertexRaw(x, y, 0f, 0f, 0xFFFFFFFF);
-        vertexRaw(x + w, y + h, 1f, 1f, 0xFFFFFFFF);
-        vertexRaw(x, y + h, 0f, 1f, 0xFFFFFFFF);
-
-        GLUtil.bindVertexArray(vao);
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
-        buffer.flip();
-        GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0L, buffer);
-        GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, vertexCount);
-
-        buffer.clear();
-        vertexCount = 0;
-        mode = MODE_NONE;
-        GLUtil.bindVertexArray(0);
-    }
-
-    private void setShaderColor(ShaderProgram shader, String name, int argb) {
-        shader.setVec4(name,
-                ((argb >>> 16) & 0xFF) / 255f,
-                ((argb >>> 8) & 0xFF) / 255f,
-                (argb & 0xFF) / 255f,
-                ((argb >>> 24) & 0xFF) / 255f);
     }
 
     private void setMode(int newMode) {
@@ -429,14 +461,6 @@ public final class Renderer2D {
     }
 
     private void vertexTex(float x, float y, float u, float v, int color) {
-        transformPos(x, y);
-        buffer.put(tempPos.x).put(tempPos.y);
-        buffer.put(u).put(v);
-        putColor(color);
-        vertexCount++;
-    }
-
-    private void vertexRaw(float x, float y, float u, float v, int color) {
         transformPos(x, y);
         buffer.put(tempPos.x).put(tempPos.y);
         buffer.put(u).put(v);
