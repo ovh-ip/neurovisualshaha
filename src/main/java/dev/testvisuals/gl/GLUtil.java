@@ -21,15 +21,6 @@ public final class GLUtil {
     private static boolean initialized;
     private static final Deque<ScissorBounds> scissorStack = new ArrayDeque<>();
 
-    private static int savedVao;
-    private static int savedProgram;
-    private static int savedVbo;
-    private static int savedTexture;
-    private static boolean savedBlend;
-    private static boolean savedDepth;
-    private static boolean savedCull;
-    private static boolean savedScissor;
-
     public record ScissorBounds(int x, int y, int width, int height) {}
 
     private GLUtil() {
@@ -47,18 +38,14 @@ public final class GLUtil {
 
     public static void saveState() {
         ensureCapabilities();
-        savedVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
-        savedProgram = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
-        savedVbo = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
-        savedTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
-        savedBlend = GL11.glIsEnabled(GL11.GL_BLEND);
-        savedDepth = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
-        savedCull = GL11.glIsEnabled(GL11.GL_CULL_FACE);
-        savedScissor = GL11.glIsEnabled(GL11.GL_SCISSOR_TEST);
     }
 
     public static void bindVertexArray(int vao) {
         GlStateManager._glBindVertexArray(vao);
+    }
+
+    public static void bindBuffer(int target, int buffer) {
+        GlStateManager._glBindBuffer(target, buffer);
     }
 
     public static void useProgram(int program) {
@@ -123,11 +110,6 @@ public final class GLUtil {
         RenderSystem.defaultBlendFunc();
     }
 
-    public static void enableAdditiveBlend() {
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE);
-    }
-
     public static void disableBlend() {
         RenderSystem.disableBlend();
     }
@@ -156,35 +138,16 @@ public final class GLUtil {
         if (!scissorStack.isEmpty()) {
             scissorStack.clear();
         }
-        if (savedScissor) {
-            GlStateManager._enableScissorTest();
-        } else {
-            GlStateManager._disableScissorTest();
-        }
-
-        if (savedBlend) {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-        } else {
-            RenderSystem.disableBlend();
-        }
-
-        if (savedDepth) {
-            RenderSystem.enableDepthTest();
-        } else {
-            RenderSystem.disableDepthTest();
-        }
-
-        if (savedCull) {
-            RenderSystem.enableCull();
-        } else {
-            RenderSystem.disableCull();
-        }
+        GlStateManager._disableScissorTest();
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.disableCull();
+        RenderSystem.depthMask(true);
 
         GlStateManager._activeTexture(GL13.GL_TEXTURE0);
-        GlStateManager._bindTexture(savedTexture);
-        GlStateManager._glBindVertexArray(savedVao);
-        GlStateManager._glUseProgram(savedProgram);
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, savedVbo);
+        GlStateManager._glBindVertexArray(0);
+        GlStateManager._glUseProgram(0);
+        GlStateManager._glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
     }
 }

@@ -464,10 +464,9 @@ public final class Renderer2D {
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
         GLUtil.bindVertexArray(vao);
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
+        GLUtil.bindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
 
         buffer.flip();
-        // Buffer Orphaning: prevents GPU driver pipeline stalls -> 800+ FPS!
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, (long) buffer.capacity() * 4L, GL15.GL_STREAM_DRAW);
         GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0L, buffer);
 
@@ -479,7 +478,8 @@ public final class Renderer2D {
         boundTexture = -1;
 
         GLUtil.bindVertexArray(0);
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+        GLUtil.bindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+        GLUtil.useProgram(0);
     }
 
     private void setMode(int newMode) {
