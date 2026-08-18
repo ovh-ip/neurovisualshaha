@@ -477,6 +477,10 @@ public final class Renderer2D {
         vertexCount = 0;
         mode = MODE_NONE;
         boundTexture = -1;
+
+        GLUtil.bindVertexArray(0);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     private void setMode(int newMode) {
