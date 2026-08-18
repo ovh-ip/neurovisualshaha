@@ -28,7 +28,7 @@ public final class GlyphAtlas {
     public static final int FONT_SIZE = 48;
     public static final int PADDING = 4;
 
-    // Built-in vector icons
+    // Vector icons
     public static final char ICON_LOGO = '\uE000';
     public static final char ICON_USER = '\uE001';
     public static final char ICON_FPS = '\uE002';
@@ -45,6 +45,19 @@ public final class GlyphAtlas {
     public static final char ICON_BOOTS = '\uE00D';
     public static final char ICON_TOTEM = '\uE00E';
     public static final char ICON_BELL = '\uE00F';
+    public static final char ICON_GLOBE = '\uE010';
+    public static final char ICON_COMPASS = '\uE011';
+    public static final char ICON_GEAR = '\uE012';
+    public static final char ICON_CROSS = '\uE013';
+    public static final char ICON_DISCORD = '\uE014';
+    public static final char ICON_TELEGRAM = '\uE015';
+    public static final char ICON_YOUTUBE = '\uE016';
+    public static final char ICON_VK = '\uE017';
+    public static final char ICON_EYE = '\uE018';
+    public static final char ICON_RENDER = '\uE019';
+    public static final char ICON_SEARCH = '\uE01A';
+    public static final char ICON_ARROW_RIGHT = '\uE01B';
+    public static final char ICON_BIOHAZARD = '\uE01C';
 
     private final int textureId;
     private final Map<Character, Glyph> glyphs;
@@ -70,7 +83,7 @@ public final class GlyphAtlas {
         for (int c = 0x400; c <= 0x45F; c++) {
             charset.append((char) c);
         }
-        charset.append("ёЁ«»—–…“”‘’♥✦★✓✗•\u00A0");
+        charset.append("ёЁ«»—–…“”‘’♥✦★✓✗•>\u00A0");
         String chars = charset.toString();
 
         Font font = pickFont();
@@ -124,7 +137,10 @@ public final class GlyphAtlas {
             char[] iconChars = {
                 ICON_LOGO, ICON_USER, ICON_FPS, ICON_PING, ICON_KEYBOARD,
                 ICON_SHIELD, ICON_SWORD, ICON_SPEED, ICON_HEART, ICON_BOOST,
-                ICON_HELMET, ICON_CHEST, ICON_LEGS, ICON_BOOTS, ICON_TOTEM, ICON_BELL
+                ICON_HELMET, ICON_CHEST, ICON_LEGS, ICON_BOOTS, ICON_TOTEM, ICON_BELL,
+                ICON_GLOBE, ICON_COMPASS, ICON_GEAR, ICON_CROSS, ICON_DISCORD,
+                ICON_TELEGRAM, ICON_YOUTUBE, ICON_VK, ICON_EYE, ICON_RENDER,
+                ICON_SEARCH, ICON_ARROW_RIGHT, ICON_BIOHAZARD
             };
 
             int iconSize = (int) maxAscent;
@@ -154,31 +170,26 @@ public final class GlyphAtlas {
 
     private static void drawVectorIcon(Graphics2D g, char icon, int x, int y, int w, int h) {
         g.setColor(Color.WHITE);
-        g.setStroke(new BasicStroke(3.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
-        float pad = w * 0.1f;
+        float pad = w * 0.12f;
         float ix = x + pad;
         float iy = y + pad;
         float iw = w - pad * 2f;
         float ih = h - pad * 2f;
 
         switch (icon) {
-            case ICON_LOGO -> {
-                // Stylish W / Crown icon
-                Path2D.Float p = new Path2D.Float();
-                p.moveTo(ix, iy + ih * 0.2f);
-                p.lineTo(ix + iw * 0.25f, iy + ih * 0.85f);
-                p.lineTo(ix + iw * 0.5f, iy + ih * 0.45f);
-                p.lineTo(ix + iw * 0.75f, iy + ih * 0.85f);
-                p.lineTo(ix + iw, iy + ih * 0.2f);
-                p.lineTo(ix + iw * 0.85f, iy + ih * 0.1f);
-                p.lineTo(ix + iw * 0.5f, iy + ih * 0.35f);
-                p.lineTo(ix + iw * 0.15f, iy + ih * 0.1f);
-                p.closePath();
-                g.fill(p);
+            case ICON_BIOHAZARD, ICON_LOGO -> {
+                // Biohazard / Wexside crown logo
+                float cx = ix + iw * 0.5f;
+                float cy = iy + ih * 0.5f;
+                g.draw(new Ellipse2D.Float(cx - iw * 0.18f, cy - ih * 0.18f, iw * 0.36f, ih * 0.36f));
+                g.draw(new Ellipse2D.Float(cx - iw * 0.42f, cy - ih * 0.42f, iw * 0.4f, ih * 0.4f));
+                g.draw(new Ellipse2D.Float(cx + iw * 0.02f, cy - ih * 0.42f, iw * 0.4f, ih * 0.4f));
+                g.draw(new Ellipse2D.Float(cx - iw * 0.2f, cy + ih * 0.02f, iw * 0.4f, ih * 0.4f));
+                g.fill(new Ellipse2D.Float(cx - iw * 0.08f, cy - ih * 0.08f, iw * 0.16f, ih * 0.16f));
             }
             case ICON_USER -> {
-                // Head + Shoulders
                 g.fill(new Ellipse2D.Float(ix + iw * 0.28f, iy, iw * 0.44f, ih * 0.44f));
                 Path2D.Float p = new Path2D.Float();
                 p.moveTo(ix + iw * 0.1f, iy + ih);
@@ -186,8 +197,99 @@ public final class GlyphAtlas {
                 p.closePath();
                 g.fill(p);
             }
+            case ICON_COMPASS, ICON_GLOBE -> {
+                g.draw(new Ellipse2D.Float(ix, iy, iw, ih));
+                g.draw(new java.awt.geom.Line2D.Float(ix, iy + ih * 0.5f, ix + iw, iy + ih * 0.5f));
+                g.draw(new Ellipse2D.Float(ix + iw * 0.22f, iy, iw * 0.56f, ih));
+            }
+            case ICON_GEAR -> {
+                float cx = ix + iw * 0.5f;
+                float cy = iy + ih * 0.5f;
+                g.draw(new Ellipse2D.Float(cx - iw * 0.35f, cy - ih * 0.35f, iw * 0.7f, ih * 0.7f));
+                g.fill(new Ellipse2D.Float(cx - iw * 0.15f, cy - ih * 0.15f, iw * 0.3f, ih * 0.3f));
+                for (int i = 0; i < 6; i++) {
+                    double ang = i * Math.PI / 3.0;
+                    float tx = cx + (float) Math.cos(ang) * iw * 0.42f;
+                    float ty = cy + (float) Math.sin(ang) * ih * 0.42f;
+                    g.fill(new Ellipse2D.Float(tx - 3, ty - 3, 6, 6));
+                }
+            }
+            case ICON_CROSS -> {
+                g.draw(new java.awt.geom.Line2D.Float(ix + iw * 0.15f, iy + ih * 0.15f, ix + iw * 0.85f, iy + ih * 0.85f));
+                g.draw(new java.awt.geom.Line2D.Float(ix + iw * 0.85f, iy + ih * 0.15f, ix + iw * 0.15f, iy + ih * 0.85f));
+            }
+            case ICON_DISCORD -> {
+                Path2D.Float p = new Path2D.Float();
+                p.moveTo(ix + iw * 0.1f, iy + ih * 0.2f);
+                p.lineTo(ix + iw * 0.9f, iy + ih * 0.2f);
+                p.lineTo(ix + iw * 0.85f, iy + ih * 0.8f);
+                p.lineTo(ix + iw * 0.65f, iy + ih * 0.75f);
+                p.lineTo(ix + iw * 0.5f, iy + ih * 0.9f);
+                p.lineTo(ix + iw * 0.35f, iy + ih * 0.75f);
+                p.lineTo(ix + iw * 0.15f, iy + ih * 0.8f);
+                p.closePath();
+                g.draw(p);
+                g.fill(new Ellipse2D.Float(ix + iw * 0.3f, iy + ih * 0.45f, iw * 0.12f, ih * 0.12f));
+                g.fill(new Ellipse2D.Float(ix + iw * 0.58f, iy + ih * 0.45f, iw * 0.12f, ih * 0.12f));
+            }
+            case ICON_TELEGRAM -> {
+                Path2D.Float p = new Path2D.Float();
+                p.moveTo(ix + iw * 0.95f, iy + ih * 0.1f);
+                p.lineTo(ix + iw * 0.1f, iy + ih * 0.5f);
+                p.lineTo(ix + iw * 0.4f, iy + ih * 0.65f);
+                p.lineTo(ix + iw * 0.55f, iy + ih * 0.95f);
+                p.lineTo(ix + iw * 0.65f, iy + ih * 0.7f);
+                p.lineTo(ix + iw * 0.95f, iy + ih * 0.1f);
+                p.closePath();
+                g.fill(p);
+            }
+            case ICON_YOUTUBE -> {
+                g.fill(new RoundRectangle2D.Float(ix, iy + ih * 0.15f, iw, ih * 0.7f, 10, 10));
+                g.setColor(new Color(25, 25, 25));
+                Path2D.Float p = new Path2D.Float();
+                p.moveTo(ix + iw * 0.4f, iy + ih * 0.32f);
+                p.lineTo(ix + iw * 0.7f, iy + ih * 0.5f);
+                p.lineTo(ix + iw * 0.4f, iy + ih * 0.68f);
+                p.closePath();
+                g.fill(p);
+                g.setColor(Color.WHITE);
+            }
+            case ICON_VK -> {
+                g.fill(new RoundRectangle2D.Float(ix, iy, iw, ih, 8, 8));
+                g.setColor(new Color(25, 25, 25));
+                g.drawString("VK", ix + iw * 0.15f, iy + ih * 0.7f);
+                g.setColor(Color.WHITE);
+            }
+            case ICON_EYE -> {
+                Path2D.Float p = new Path2D.Float();
+                p.moveTo(ix, iy + ih * 0.5f);
+                p.curveTo(ix + iw * 0.25f, iy + ih * 0.1f, ix + iw * 0.75f, iy + ih * 0.1f, ix + iw, iy + ih * 0.5f);
+                p.curveTo(ix + iw * 0.75f, iy + ih * 0.9f, ix + iw * 0.25f, iy + ih * 0.9f, ix, iy + ih * 0.5f);
+                p.closePath();
+                g.draw(p);
+                g.fill(new Ellipse2D.Float(ix + iw * 0.38f, iy + ih * 0.38f, iw * 0.24f, ih * 0.24f));
+            }
+            case ICON_RENDER -> {
+                Path2D.Float p = new Path2D.Float();
+                p.moveTo(ix + iw * 0.1f, iy + ih * 0.1f);
+                p.lineTo(ix + iw * 0.9f, iy + ih * 0.5f);
+                p.lineTo(ix + iw * 0.1f, iy + ih * 0.9f);
+                p.lineTo(ix + iw * 0.3f, iy + ih * 0.5f);
+                p.closePath();
+                g.fill(p);
+            }
+            case ICON_SEARCH -> {
+                g.draw(new Ellipse2D.Float(ix, iy, iw * 0.65f, ih * 0.65f));
+                g.draw(new java.awt.geom.Line2D.Float(ix + iw * 0.55f, iy + ih * 0.55f, ix + iw * 0.9f, iy + ih * 0.9f));
+            }
+            case ICON_ARROW_RIGHT -> {
+                Path2D.Float p = new Path2D.Float();
+                p.moveTo(ix + iw * 0.35f, iy + ih * 0.2f);
+                p.lineTo(ix + iw * 0.65f, iy + ih * 0.5f);
+                p.lineTo(ix + iw * 0.35f, iy + ih * 0.8f);
+                g.draw(p);
+            }
             case ICON_FPS -> {
-                // Screen / Monitor
                 g.fill(new RoundRectangle2D.Float(ix, iy + ih * 0.05f, iw, ih * 0.65f, 6, 6));
                 g.setColor(new Color(30, 30, 30));
                 g.fill(new Rectangle2D.Float(ix + iw * 0.15f, iy + ih * 0.18f, iw * 0.7f, ih * 0.38f));
@@ -196,13 +298,11 @@ public final class GlyphAtlas {
                 g.fill(new RoundRectangle2D.Float(ix + iw * 0.25f, iy + ih * 0.88f, iw * 0.5f, ih * 0.08f, 2, 2));
             }
             case ICON_PING -> {
-                // Antenna / Signal wave / Speedometer
                 g.fill(new RoundRectangle2D.Float(ix + iw * 0.1f, iy + ih * 0.7f, iw * 0.16f, ih * 0.3f, 3, 3));
                 g.fill(new RoundRectangle2D.Float(ix + iw * 0.42f, iy + ih * 0.4f, iw * 0.16f, ih * 0.6f, 3, 3));
                 g.fill(new RoundRectangle2D.Float(ix + iw * 0.74f, iy + ih * 0.1f, iw * 0.16f, ih * 0.9f, 3, 3));
             }
             case ICON_KEYBOARD -> {
-                // Keyboard
                 g.fill(new RoundRectangle2D.Float(ix, iy + ih * 0.15f, iw, ih * 0.7f, 6, 6));
                 g.setColor(new Color(25, 25, 25));
                 for (int row = 0; row < 2; row++) {
@@ -213,7 +313,6 @@ public final class GlyphAtlas {
                 g.setColor(Color.WHITE);
             }
             case ICON_SHIELD -> {
-                // Shield
                 Path2D.Float p = new Path2D.Float();
                 p.moveTo(ix + iw * 0.5f, iy);
                 p.lineTo(ix + iw, iy + ih * 0.2f);
@@ -223,7 +322,6 @@ public final class GlyphAtlas {
                 g.fill(p);
             }
             case ICON_SWORD -> {
-                // Sword
                 Path2D.Float p = new Path2D.Float();
                 p.moveTo(ix + iw * 0.85f, iy);
                 p.lineTo(ix + iw, iy + ih * 0.15f);
@@ -234,7 +332,6 @@ public final class GlyphAtlas {
                 g.draw(new java.awt.geom.Line2D.Float(ix, iy + ih, ix + iw * 0.35f, iy + ih * 0.65f));
             }
             case ICON_SPEED -> {
-                // Wing / Boot
                 Path2D.Float p = new Path2D.Float();
                 p.moveTo(ix, iy + ih * 0.3f);
                 p.lineTo(ix + iw * 0.6f, iy);
@@ -246,7 +343,6 @@ public final class GlyphAtlas {
                 g.fill(p);
             }
             case ICON_HEART -> {
-                // Heart
                 Path2D.Float p = new Path2D.Float();
                 p.moveTo(ix + iw * 0.5f, iy + ih * 0.25f);
                 p.curveTo(ix + iw * 0.5f, iy, ix, iy, ix, iy + ih * 0.35f);
@@ -257,7 +353,6 @@ public final class GlyphAtlas {
                 g.fill(p);
             }
             case ICON_BOOST -> {
-                // Plus / Health Boost
                 float cx = ix + iw * 0.5f;
                 float cy = iy + ih * 0.5f;
                 g.fill(new RoundRectangle2D.Float(cx - iw * 0.12f, iy + ih * 0.1f, iw * 0.24f, ih * 0.8f, 4, 4));
