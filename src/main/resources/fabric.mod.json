@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "testvisuals",
+  "version": "${version}",
+  "name": "TestVisuals",
+  "description": "Кастомный оптимизированный 2D/3D рендерер и главное меню для Minecraft 1.21.4",
+  "authors": [
+    "dedredfff"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.testvisuals.TestVisualsClient"
+    ]
+  },
+  "mixins": [
+    "testvisuals.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.4",
+    "java": ">=21"
+  }
+}
