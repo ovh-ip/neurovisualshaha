@@ -98,6 +98,7 @@ public final class ClickGuiScreen extends Screen {
         Renderer2D renderer = HudManager.get().renderer();
         CustomFontRenderer font = HudManager.get().font();
 
+        GLUtil.saveState();
         GLUtil.enableBlend();
         GLUtil.disableDepth();
         renderer.begin(sw, sh);

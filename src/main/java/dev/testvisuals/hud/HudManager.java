@@ -7,6 +7,7 @@ import java.util.List;
 import org.lwjgl.glfw.GLFW;
 
 import dev.testvisuals.font.CustomFontRenderer;
+import dev.testvisuals.gl.GLUtil;
 import dev.testvisuals.hud.components.EffectsHud;
 import dev.testvisuals.hud.components.KeybindHud;
 import dev.testvisuals.hud.components.NotificationHud;
@@ -79,10 +80,10 @@ public final class HudManager {
         float screenWidth = client.getWindow().getScaledWidth();
         float screenHeight = client.getWindow().getScaledHeight();
 
-        dev.testvisuals.gl.GLUtil.enableBlend();
-        dev.testvisuals.gl.GLUtil.disableDepth();
+        GLUtil.saveState();
+        GLUtil.enableBlend();
+        GLUtil.disableDepth();
         renderer.begin(screenWidth, screenHeight);
-        renderer.pushScissor(0f, 0f, screenWidth, screenHeight);
 
         List<HudComponent> sorted = new ArrayList<>(components);
         sorted.sort(Comparator.comparing(c -> c == dragging ? 1 : 0));
@@ -97,10 +98,7 @@ public final class HudManager {
             }
         }
         renderer.flush();
-
-        renderer.popScissor();
-        renderer.flush();
-        dev.testvisuals.gl.GLUtil.restoreState();
+        GLUtil.restoreState();
     }
 
     private void renderEditOverlay(HudComponent component) {
