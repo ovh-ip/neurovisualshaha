@@ -112,6 +112,8 @@ public final class ClickGuiScreen extends Screen {
         float sw = width;
         float sh = height;
 
+        context.draw();
+
         Renderer2D renderer = HudManager.get().renderer();
         CustomFontRenderer font = HudManager.get().font();
 
@@ -194,6 +196,10 @@ public final class ClickGuiScreen extends Screen {
 
         renderer.popMatrix();
         renderer.flush();
+
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+        com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
 
         super.render(context, mouseX, mouseY, delta);
     }
