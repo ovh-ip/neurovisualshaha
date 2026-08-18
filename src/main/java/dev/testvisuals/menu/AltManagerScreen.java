@@ -92,8 +92,10 @@ public final class AltManagerScreen extends Screen {
 
         renderer.popMatrix();
         renderer.flush();
+    }
 
-        super.render(context, mouseX, mouseY, delta);
+    @Override
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
     }
 
     @Override

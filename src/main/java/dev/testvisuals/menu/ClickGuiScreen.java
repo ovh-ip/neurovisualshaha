@@ -196,12 +196,10 @@ public final class ClickGuiScreen extends Screen {
 
         renderer.popMatrix();
         renderer.flush();
+    }
 
-        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
-        com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
-        com.mojang.blaze3d.systems.RenderSystem.disableDepthTest();
-
-        super.render(context, mouseX, mouseY, delta);
+    @Override
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
     }
 
     private void renderModulesTab(Renderer2D renderer, CustomFontRenderer font,
