@@ -22,8 +22,8 @@ public final class ThemeManager {
         public final int toggleOn;
         public final int toggleOff;
 
-        Theme(String name, int text, int textDim, int bg, int bgSoft, int panel, int border, int shadow,
-              int fill, int empty, int accent, int bar, int dragHighlight, int toggleOn, int toggleOff) {
+        public Theme(String name, int text, int textDim, int bg, int bgSoft, int panel, int border, int shadow,
+                     int fill, int empty, int accent, int bar, int dragHighlight, int toggleOn, int toggleOff) {
             this.name = name;
             this.text = text;
             this.textDim = textDim;
@@ -42,22 +42,32 @@ public final class ThemeManager {
         }
     }
 
-    public static final Theme DARK = new Theme("Тёмный",
-            0xFFFFFFFF, 0xFF9AA0A6, 0xA6000000, 0x66000000, 0xE61A1C1E,
-            0x33FFFFFF, 0x40000000, 0xFFFFFFFF, 0x2EFFFFFF, 0xFFFFFFFF,
-            0x66FFFFFF, 0x59FFFFFF, 0xFF000000, 0x33000000);
+    public static final Theme DARK = new Theme("Тёмный Космос",
+            0xFFF8FAFC, 0xFF94A3B8, 0xCC0F172A, 0x991E293B, 0xEE0B132B,
+            0x4D6EE7FF, 0x66000000, 0xFF6EE7FF, 0x336EE7FF, 0xFF38BDF8,
+            0x6638BDF8, 0x8038BDF8, 0xFF38BDF8, 0x4D1E293B);
 
-    public static final Theme LIGHT = new Theme("Светлый",
-            0xFF101114, 0xFF6E747B, 0xD9FFFFFF, 0x99FFFFFF, 0xF2F4F6,
-            0x2E000000, 0x33000000, 0xFF101114, 0x14000000, 0xFF101114,
-            0x26000000, 0x3D101114, 0xFFFFFFFF, 0x1F101114);
+    public static final Theme LIGHT = new Theme("Светлый Иней",
+            0xFF0F172A, 0xFF64748B, 0xE6FFFFFF, 0xCCF1F5F9, 0xF8F8FAFC,
+            0x330F172A, 0x26000000, 0xFF0284C7, 0x260284C7, 0xFF0284C7,
+            0x4D0284C7, 0x660284C7, 0xFF0284C7, 0x33CBD5E1);
 
     public static final Theme GRAPHITE = new Theme("Графит",
-            0xFFE8EAED, 0xFF8A9099, 0xC426282B, 0x80262A2E, 0xE62B2F33,
-            0x2EFFFFFF, 0x40000000, 0xFFE8EAED, 0x2EFFFFFF, 0xFFE8EAED,
-            0x59FFFFFF, 0x59FFFFFF, 0xFF191C1F, 0x33191C1F);
+            0xFFF4F4F5, 0xFFA1A1AA, 0xCC18181B, 0x9927272A, 0xEE121214,
+            0x33FFFFFF, 0x66000000, 0xFFE4E4E7, 0x33E4E4E7, 0xFFFAFAFA,
+            0x66FAFAFA, 0x80FAFAFA, 0xFFFAFAFA, 0x4D27272A);
 
-    public static final Theme[] ALL = {DARK, LIGHT, GRAPHITE};
+    public static final Theme CYBERPUNK = new Theme("Киберпанк",
+            0xFFFDF4FF, 0xFFC084FC, 0xCC180B2E, 0x992E1065, 0xEE130724,
+            0x4DF43F5E, 0x66000000, 0xFFF43F5E, 0x33F43F5E, 0xFFE879F9,
+            0x66E879F9, 0x80E879F9, 0xFFE879F9, 0x4D2E1065);
+
+    public static final Theme SUNSET = new Theme("Закат",
+            0xFFFFFBEB, 0xFFFBBF24, 0xCC1F1635, 0x9931204C, 0xEE170F28,
+            0x4DFB923C, 0x66000000, 0xFFF59E0B, 0x33F59E0B, 0xFFF97316,
+            0x66F97316, 0x80F97316, 0xFFF97316, 0x4D31204C);
+
+    public static final Theme[] ALL = {DARK, LIGHT, GRAPHITE, CYBERPUNK, SUNSET};
 
     private static Theme current = DARK;
 
@@ -67,7 +77,7 @@ public final class ThemeManager {
     public static void init() {
         String saved = Config.theme();
         for (Theme theme : ALL) {
-            if (theme.name.equals(saved)) {
+            if (theme.name.equalsIgnoreCase(saved)) {
                 current = theme;
                 break;
             }

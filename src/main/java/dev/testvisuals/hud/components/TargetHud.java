@@ -17,19 +17,19 @@ import net.minecraft.util.Identifier;
 
 public final class TargetHud extends HudComponent {
 
-    private static final float WIDTH = 172f;
+    private static final float WIDTH = 180f;
     private static final float HEIGHT = 52f;
-    private static final float AVATAR_SIZE = 32f;
-    private static final float TEXT_SCALE = 0.19f;
-    private static final float HEART_SCALE = 0.55f;
+    private static final float AVATAR_SIZE = 34f;
+    private static final float TEXT_SCALE = 0.22f;
+    private static final float HEART_SCALE = 0.45f;
 
     private final MinecraftClient client = MinecraftClient.getInstance();
 
     public TargetHud() {
-        super("target", "Target");
+        super("target", "Target HUD");
         position.anchor = dev.testvisuals.hud.Anchor.BOTTOM_LEFT;
-        position.offsetX = 12f;
-        position.offsetY = 46f;
+        position.offsetX = 16f;
+        position.offsetY = 60f;
     }
 
     private LivingEntity resolveTarget() {
@@ -60,67 +60,59 @@ public final class TargetHud extends HudComponent {
     @Override
     protected void renderContent(Renderer2D renderer, float delta, boolean editMode) {
         LivingEntity target = resolveTarget();
-        if (target == null) {
+        if (target == null && !editMode) {
             return;
         }
-        RoundedRectRenderer.box(renderer, screenX, screenY, WIDTH, HEIGHT, 6f);
+
+        RoundedRectRenderer.box(renderer, screenX, screenY, WIDTH, HEIGHT, 8f);
 
         float avatarY = screenY + (HEIGHT - AVATAR_SIZE) / 2f;
-        int skinGlId = skinGlId(target);
-        renderer.setSaturate(0f);
-        renderer.texturedQuad(skinGlId, screenX + 10f, avatarY, AVATAR_SIZE, AVATAR_SIZE,
-                8f / 64f, 8f / 64f, 16f / 64f, 16f / 64f, 0xFFFFFFFF);
-        renderer.setSaturate(1f);
-        renderer.roundedOutline(screenX + 10f, avatarY, AVATAR_SIZE, AVATAR_SIZE, 4f, 1f, HudStyle.BORDER);
+        int skinGlId = (target != null) ? skinGlId(target) : (client.player != null ? skinGlId(client.player) : 0);
 
-        String name = truncate(target.getDisplayName() != null
-                ? target.getDisplayName().getString() : target.getName().getString(), 13);
+        if (skinGlId > 0) {
+            renderer.texturedQuad(skinGlId, screenX + 8f, avatarY, AVATAR_SIZE, AVATAR_SIZE,
+                    8f / 64f, 8f / 64f, 16f / 64f, 16f / 64f, 0xFFFFFFFF);
+        } else {
+            renderer.roundedRect(screenX + 8f, avatarY, AVATAR_SIZE, AVATAR_SIZE, 4f, HudStyle.BG_SOFT);
+            font().drawCentered(renderer, "★", screenX + 8f + AVATAR_SIZE / 2f,
+                    avatarY + (AVATAR_SIZE - font().lineHeight(0.24f)) / 2f, 0.24f, HudStyle.ACCENT);
+        }
+        renderer.roundedOutline(screenX + 8f, avatarY, AVATAR_SIZE, AVATAR_SIZE, 4f, 1f, HudStyle.BORDER);
 
-        float textX = screenX + 52f;
+        String name = "Target";
+        if (target != null) {
+            name = target.getDisplayName() != null ? target.getDisplayName().getString() : target.getName().getString();
+        }
+        name = truncate(name, 12);
+
+        float textX = screenX + 48f;
         float nameY = screenY + 8f;
         font().draw(renderer, name, textX, nameY, TEXT_SCALE, HudStyle.TEXT);
 
-        float heartsY = screenY + 34f;
-        drawHearts(renderer, target, textX, heartsY);
+        float health = target != null ? target.getHealth() : 20f;
+        float maxHealth = target != null ? target.getMaxHealth() : 20f;
 
-        drawLevelCircle(renderer, target);
-    }
+        // Health Bar
+        float barX = textX;
+        float barY = screenY + 28f;
+        float barW = WIDTH - 56f;
+        float barH = 6f;
+        float progress = Math.clamp(health / Math.max(1f, maxHealth), 0f, 1f);
 
-    private void drawHearts(Renderer2D renderer, LivingEntity target, float x, float y) {
-        float maxHealth = target.getMaxHealth();
-        float health = target.getHealth();
-        int total = (int) Math.ceil(maxHealth / 2f);
-        total = Math.max(total, 10);
-        int full = (int) (health / 2f);
-        boolean half = health % 2f >= 0.99f && full < total;
-
-        float heartW = font().measure("♥", HEART_SCALE);
-        for (int i = 0; i < total; i++) {
-            int color = i < full ? HudStyle.FILL : HudStyle.EMPTY;
-            if (i == full && half) {
-                float uMid = (font().atlas().glyph('♥').u0() + font().atlas().glyph('♥').u1()) / 2f;
-                renderer.texturedQuad(font().atlas().textureId(), x + i * (heartW + 2f), y, heartW / 2f,
-                        font().lineHeight(HEART_SCALE), font().atlas().glyph('♥').u0(),
-                        font().atlas().glyph('♥').v0(), uMid, font().atlas().glyph('♥').v1(), HudStyle.FILL);
-            } else {
-                font().draw(renderer, "♥", x + i * (heartW + 2f), y, HEART_SCALE, color);
-            }
+        renderer.roundedRect(barX, barY, barW, barH, 3f, HudStyle.EMPTY);
+        if (progress > 0.01f) {
+            renderer.roundedGradient(barX, barY, barW * progress, barH, 3f,
+                    HudStyle.ACCENT, HudStyle.ACCENT, HudStyle.FILL, HudStyle.FILL);
         }
-        font().draw(renderer, formatHealth(health), x + total * (heartW + 2f) + 8f, y,
-                HEART_SCALE * 0.7f, HudStyle.TEXT_DIM);
-    }
 
-    private void drawLevelCircle(Renderer2D renderer, LivingEntity target) {
-        int level = 0;
-        if (target instanceof PlayerEntity player) {
-            level = player.experienceLevel;
+        // Health text counter
+        font().draw(renderer, String.format("%.1f HP", health), barX, screenY + 38f, 0.16f, HudStyle.TEXT_DIM);
+
+        // Level
+        int level = (target instanceof PlayerEntity player) ? player.experienceLevel : 0;
+        if (level > 0 || editMode) {
+            font().drawRight(renderer, "Lvl " + level, screenX + WIDTH - 10f, screenY + 38f, 0.16f, HudStyle.ACCENT);
         }
-        float cx = screenX + WIDTH - 28f;
-        float cy = screenY + HEIGHT / 2f;
-        renderer.ring(cx, cy, 8f, 10f, HudStyle.BORDER);
-        String text = String.valueOf(level);
-        font().drawCentered(renderer, text, cx, cy - font().lineHeight(0.32f) / 2f, 0.32f,
-                ColorUtils.withAlpha(HudStyle.TEXT, 0.9f));
     }
 
     private int skinGlId(LivingEntity target) {
@@ -139,10 +131,6 @@ public final class TargetHud extends HudComponent {
         } catch (Exception e) {
             return 0;
         }
-    }
-
-    private String formatHealth(float health) {
-        return String.format("%.1f", health);
     }
 
     private String truncate(String text, int maxChars) {
