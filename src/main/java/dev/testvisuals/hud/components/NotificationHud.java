@@ -1,93 +1,94 @@
 package dev.testvisuals.hud.components;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 
+import dev.testvisuals.font.GlyphAtlas;
+import dev.testvisuals.hud.Anchor;
 import dev.testvisuals.hud.HudComponent;
 import dev.testvisuals.hud.HudStyle;
-import dev.testvisuals.hud.RoundedRectRenderer;
 import dev.testvisuals.render.Renderer2D;
 import dev.testvisuals.util.AnimationUtils;
 
 public final class NotificationHud extends HudComponent {
 
-    private static final long IN_MS = 200L;
-    private static final long OUT_MS = 200L;
-    private static final long HOLD_MS = 2000L;
-    private static final float WIDTH = 210f;
-    private static final float HEIGHT = 24f;
-    private static final float GAP = 4f;
-    private static final float TEXT_SCALE = 0.17f;
-    private static final int MAX_ENTRIES = 4;
+    private static final float HEIGHT = 20f;
+    private static final float SCALE = 0.22f;
+    private static final float MAX_LIFETIME = 4.0f;
 
-    private static final class Entry {
+    private static final class Notification {
         final String text;
-        final long start;
+        float time;
+        float alpha;
 
-        Entry(String text, long start) {
+        Notification(String text) {
             this.text = text;
-            this.start = start;
         }
     }
 
-    private final Deque<Entry> entries = new ArrayDeque<>();
+    private final List<Notification> queue = new ArrayList<>();
 
     public NotificationHud() {
-        super("notification", "Notifications");
-        position.anchor = dev.testvisuals.hud.Anchor.BOTTOM_RIGHT;
-        position.offsetX = -12f;
-        position.offsetY = -44f;
+        super("notifications", "Notifications");
+        position.anchor = Anchor.TOP_CENTER;
+        position.offsetX = 0f;
+        position.offsetY = 32f;
     }
 
     public void push(String text) {
-        entries.addLast(new Entry(text, System.nanoTime()));
-        while (entries.size() > MAX_ENTRIES) {
-            entries.removeFirst();
-        }
+        queue.add(new Notification(text));
     }
 
     @Override
     public float getWidth() {
-        return WIDTH;
+        if (queue.isEmpty()) {
+            return 140f;
+        }
+        return font().measure(GlyphAtlas.ICON_HEART + "  " + queue.get(0).text, SCALE) + 20f;
     }
 
     @Override
     public float getHeight() {
-        return entries.isEmpty() ? 0f : entries.size() * (HEIGHT + GAP) - GAP;
+        return Math.max(HEIGHT, queue.size() * (HEIGHT + 4f));
     }
 
     @Override
     protected void renderContent(Renderer2D renderer, float delta, boolean editMode) {
-        long now = System.nanoTime();
-        List<Entry> visible = new ArrayList<>();
-        Iterator<Entry> it = entries.iterator();
+        if (queue.isEmpty() && editMode) {
+            queue.add(new Notification("Пример уведомления"));
+        }
+
+        Iterator<Notification> it = queue.iterator();
+        float curY = screenY;
+
         while (it.hasNext()) {
-            Entry entry = it.next();
-            float age = (now - entry.start) / 1_000_000f;
-            if (age > HOLD_MS + OUT_MS) {
+            Notification n = it.next();
+            n.time += delta;
+            if (n.time > MAX_LIFETIME && !editMode) {
                 it.remove();
                 continue;
             }
-            visible.add(entry);
-        }
 
-        float y = screenY;
-        for (Entry entry : visible) {
-            float age = (now - entry.start) / 1_000_000f;
-            float inP = AnimationUtils.clamp01(age / IN_MS);
-            float outP = AnimationUtils.clamp01((HOLD_MS + OUT_MS - age) / OUT_MS);
-            float alpha = Math.min(AnimationUtils.easeOutCubic(inP), AnimationUtils.easeOutCubic(outP));
-            float slide = (1f - AnimationUtils.easeOutCubic(inP)) * -18f;
+            n.alpha = AnimationUtils.approach(n.alpha, 1.0f, delta, 8f);
+            if (n.time > MAX_LIFETIME - 0.5f && !editMode) {
+                n.alpha = Math.max(0f, (MAX_LIFETIME - n.time) * 2.0f);
+            }
 
-            float drawY = y + slide;
-            RoundedRectRenderer.box(renderer, screenX, drawY, WIDTH, HEIGHT, 6f);
-            renderer.roundedRect(screenX, drawY + 5f, 2f, HEIGHT - 10f, 1f, HudStyle.text(alpha));
-            float textY = drawY + (HEIGHT - font().lineHeight(TEXT_SCALE)) / 2f;
-            font().draw(renderer, entry.text, screenX + 12f, textY, TEXT_SCALE, HudStyle.text(alpha));
-            y += HEIGHT + GAP;
+            String fullText = GlyphAtlas.ICON_HEART + "  " + n.text;
+            float w = font().measure(fullText, SCALE) + 18f;
+            float x = screenX - w / 2f;
+
+            // Dark pill
+            renderer.roundedBordered(x, curY, w, HEIGHT, 5f, 1f, HudStyle.BG, HudStyle.BORDER);
+
+            // Red heart icon
+            font().draw(renderer, String.valueOf(GlyphAtlas.ICON_HEART), x + 8f, curY + 4f, SCALE, 0xFFEF4444);
+
+            // White text
+            font().draw(renderer, n.text, x + 22f, curY + 4f, SCALE, HudStyle.TEXT);
+
+            curY += HEIGHT + 4f;
         }
     }
 }

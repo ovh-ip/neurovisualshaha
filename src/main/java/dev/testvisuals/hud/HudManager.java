@@ -102,11 +102,9 @@ public final class HudManager {
     }
 
     private void renderEditOverlay(HudComponent component) {
-        int color = component == dragging ? HudStyle.DRAG_HIGHLIGHT : HudStyle.BORDER;
+        int color = component == dragging ? 0xFFFFFFFF : 0x55FFFFFF;
         renderer.roundedOutline(component.screenX, component.screenY,
-                component.getWidth(), component.getHeight(), 4f, 1f, color);
-        font.draw(renderer, component.getDisplayName(),
-                component.screenX + 4f, component.screenY + 2f, 0.5f, HudStyle.TEXT_DIM);
+                component.getWidth(), component.getHeight(), 5f, 1f, color);
     }
 
     private void handleDragging(boolean editMode) {

@@ -3,93 +3,69 @@ package dev.testvisuals.hud.components;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.testvisuals.font.CustomFontRenderer;
+import dev.testvisuals.font.GlyphAtlas;
+import dev.testvisuals.hud.Anchor;
 import dev.testvisuals.hud.HudComponent;
 import dev.testvisuals.hud.HudStyle;
-import dev.testvisuals.hud.RoundedRectRenderer;
 import dev.testvisuals.render.Renderer2D;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
 
 public final class KeybindHud extends HudComponent {
 
-    private static final float ROW_HEIGHT = 17f;
-    private static final float PADDING = 8f;
-    private static final float GAP = 2f;
-    private static final float TEXT_SCALE = 0.15f;
+    private static final float WIDTH = 135f;
+    private static final float HEADER_HEIGHT = 18f;
+    private static final float ROW_HEIGHT = 14f;
+    private static final float SCALE = 0.22f;
 
-    private static final class Row {
-        String name;
-        String key;
-
-        Row(String name, String key) {
-            this.name = name;
-            this.key = key;
-        }
-    }
+    public record KeyEntry(String name, String bind) {}
 
     public KeybindHud() {
-        super("keybind", "Keybinds");
-        position.anchor = dev.testvisuals.hud.Anchor.MIDDLE_RIGHT;
-        position.offsetX = -12f;
-        position.offsetY = 0f;
+        super("keybinds", "Keybinds");
+        position.anchor = Anchor.MIDDLE_LEFT;
+        position.offsetX = 8f;
+        position.offsetY = -20f;
     }
 
-    private List<Row> collectRows() {
-        List<Row> rows = new ArrayList<>();
-        int count = 0;
-        for (KeyBinding keyBinding : MinecraftClient.getInstance().options.allKeys) {
-            if (keyBinding.isUnbound()) {
-                continue;
-            }
-            String translationKey = keyBinding.getTranslationKey();
-            if (translationKey.startsWith("key.hotbar.")) {
-                continue;
-            }
-            String name = KeyBinding.getLocalizedName(translationKey).get().getString();
-            String key = keyBinding.getBoundKeyLocalizedText().getString();
-            rows.add(new Row(name, key));
-            count++;
-            if (count >= 10) {
-                break;
-            }
+    private List<KeyEntry> resolveKeybinds(boolean editMode) {
+        List<KeyEntry> list = new ArrayList<>();
+        list.add(new KeyEntry("ElytraHelper", "END"));
+        list.add(new KeyEntry("TargetHUD", "V"));
+        if (editMode) {
+            list.add(new KeyEntry("AutoTotem", "R"));
         }
-        return rows;
+        return list;
     }
 
     @Override
     public float getWidth() {
-        return 150f;
+        return WIDTH;
     }
 
     @Override
     public float getHeight() {
-        List<Row> rows = collectRows();
-        if (rows.isEmpty()) {
-            return 0f;
-        }
-        return PADDING * 2f + rows.size() * ROW_HEIGHT + (rows.size() - 1) * GAP;
+        List<KeyEntry> keys = resolveKeybinds(false);
+        int rows = Math.max(1, keys.size());
+        return HEADER_HEIGHT + rows * ROW_HEIGHT + 4f;
     }
 
     @Override
     protected void renderContent(Renderer2D renderer, float delta, boolean editMode) {
-        List<Row> rows = collectRows();
-        if (rows.isEmpty()) {
-            return;
-        }
-        float h = getHeight();
-        RoundedRectRenderer.box(renderer, screenX, screenY, getWidth(), h, 6f);
+        List<KeyEntry> keys = resolveKeybinds(editMode);
+        float h = HEADER_HEIGHT + keys.size() * ROW_HEIGHT + 4f;
 
-        CustomFontRenderer font = font();
-        float y = screenY + PADDING;
-        for (Row row : rows) {
-            float textY = y + (ROW_HEIGHT - font.lineHeight(TEXT_SCALE)) / 2f;
-            font.draw(renderer, row.name, screenX + PADDING, textY, TEXT_SCALE, HudStyle.TEXT_DIM);
-            float keyW = font.measure(row.key, TEXT_SCALE) + 12f;
-            RoundedRectRenderer.chip(renderer, screenX + getWidth() - PADDING - keyW, y + 2f,
-                    keyW, ROW_HEIGHT - 4f, 4f, HudStyle.BG_SOFT);
-            font.draw(renderer, row.key, screenX + getWidth() - PADDING - keyW + 6f, textY, TEXT_SCALE, HudStyle.TEXT);
-            y += ROW_HEIGHT + GAP;
+        // Dark card background & border
+        renderer.roundedBordered(screenX, screenY, WIDTH, h, 6f, 1f, HudStyle.BG, HudStyle.BORDER);
+
+        // Header: Keybinds + Keyboard icon
+        float headerTextY = screenY + 4f;
+        font().draw(renderer, "Keybinds", screenX + 8f, headerTextY, SCALE, HudStyle.TEXT);
+        font().drawRight(renderer, String.valueOf(GlyphAtlas.ICON_KEYBOARD), screenX + WIDTH - 8f, headerTextY, SCALE, HudStyle.TEXT_DIM);
+
+        // Rows
+        float rowY = screenY + HEADER_HEIGHT + 2f;
+        for (KeyEntry entry : keys) {
+            font().draw(renderer, entry.name(), screenX + 8f, rowY, SCALE, HudStyle.TEXT);
+            font().drawRight(renderer, entry.bind(), screenX + WIDTH - 8f, rowY, SCALE, HudStyle.TEXT_DIM);
+            rowY += ROW_HEIGHT;
         }
     }
 }

@@ -275,6 +275,40 @@ public final class Renderer2D {
         ring(cx, cy, Math.max(0f, radius - thickness), radius, color);
     }
 
+    public void arc(float cx, float cy, float radius, float startAngle, float endAngle, float thickness, int color) {
+        float innerRadius = Math.max(0f, radius - thickness);
+        float sweep = endAngle - startAngle;
+        if (Math.abs(sweep) < 0.001f) return;
+
+        int segments = Math.max(8, (int) (Math.abs(sweep) / (Math.PI * 2.0) * (radius * 3.0f)));
+        setMode(MODE_FLAT);
+        ensureCapacity(segments * 6);
+
+        float angleStep = sweep / segments;
+        for (int i = 0; i < segments; i++) {
+            float a1 = startAngle + i * angleStep;
+            float a2 = startAngle + (i + 1) * angleStep;
+
+            float x1Out = cx + (float) Math.cos(a1) * radius;
+            float y1Out = cy + (float) Math.sin(a1) * radius;
+            float x2Out = cx + (float) Math.cos(a2) * radius;
+            float y2Out = cy + (float) Math.sin(a2) * radius;
+
+            float x1In = cx + (float) Math.cos(a1) * innerRadius;
+            float y1In = cy + (float) Math.sin(a1) * innerRadius;
+            float x2In = cx + (float) Math.cos(a2) * innerRadius;
+            float y2In = cy + (float) Math.sin(a2) * innerRadius;
+
+            vertex(x1In, y1In, color);
+            vertex(x1Out, y1Out, color);
+            vertex(x2Out, y2Out, color);
+
+            vertex(x1In, y1In, color);
+            vertex(x2Out, y2Out, color);
+            vertex(x2In, y2In, color);
+        }
+    }
+
     public void ring(float cx, float cy, float innerRadius, float outerRadius, int color) {
         int segments = Math.max(16, (int) (outerRadius * 3.0f));
         setMode(MODE_FLAT);
