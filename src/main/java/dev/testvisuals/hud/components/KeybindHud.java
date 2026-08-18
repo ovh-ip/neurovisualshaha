@@ -7,6 +7,7 @@ import dev.testvisuals.font.GlyphAtlas;
 import dev.testvisuals.hud.Anchor;
 import dev.testvisuals.hud.HudComponent;
 import dev.testvisuals.hud.HudStyle;
+import dev.testvisuals.menu.ClickGuiScreen;
 import dev.testvisuals.render.Renderer2D;
 
 public final class KeybindHud extends HudComponent {
@@ -27,10 +28,13 @@ public final class KeybindHud extends HudComponent {
 
     private List<KeyEntry> resolveKeybinds(boolean editMode) {
         List<KeyEntry> list = new ArrayList<>();
-        list.add(new KeyEntry("ElytraHelper", "END"));
-        list.add(new KeyEntry("TargetHUD", "V"));
-        if (editMode) {
-            list.add(new KeyEntry("AutoTotem", "R"));
+        for (ClickGuiScreen.GuiModule mod : ClickGuiScreen.MODULES) {
+            if (mod.enabled && mod.keybind != null && !mod.keybind.equalsIgnoreCase("NONE")) {
+                list.add(new KeyEntry(mod.name, mod.keybind));
+            }
+        }
+        if (list.isEmpty() && editMode) {
+            list.add(new KeyEntry("Keybinds", "RSHIFT"));
         }
         return list;
     }
@@ -50,6 +54,10 @@ public final class KeybindHud extends HudComponent {
     @Override
     protected void renderContent(Renderer2D renderer, float delta, boolean editMode) {
         List<KeyEntry> keys = resolveKeybinds(editMode);
+        if (keys.isEmpty()) {
+            return;
+        }
+
         float h = HEADER_HEIGHT + keys.size() * ROW_HEIGHT + 4f;
 
         // Dark card background & border
@@ -64,7 +72,7 @@ public final class KeybindHud extends HudComponent {
         float rowY = screenY + HEADER_HEIGHT + 2f;
         for (KeyEntry entry : keys) {
             font().draw(renderer, entry.name(), screenX + 8f, rowY, SCALE, HudStyle.TEXT);
-            font().drawRight(renderer, entry.bind(), screenX + WIDTH - 8f, rowY, SCALE, HudStyle.TEXT_DIM);
+            font().drawRight(renderer, entry.bind(), screenX + WIDTH - 8f, rowY, SCALE, HudStyle.ACCENT);
             rowY += ROW_HEIGHT;
         }
     }
