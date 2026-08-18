@@ -3,7 +3,10 @@
   "package": "dev.testvisuals.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "TitleScreenMixin"
+    "TitleScreenMixin",
+    "InGameHudMixin",
+    "MinecraftClientMixin",
+    "SessionAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

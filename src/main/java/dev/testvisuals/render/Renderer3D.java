@@ -1,7 +1,6 @@
 package dev.testvisuals.render;
 
 import java.nio.FloatBuffer;
-import java.util.List;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -43,7 +42,7 @@ public final class Renderer3D {
         vao = GL30.glGenVertexArrays();
         vbo = GL15.glGenBuffers();
 
-        GL30.glBindVertexArray(vao);
+        GLUtil.bindVertexArray(vao);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, (long) buffer.capacity() * 4L, GL15.GL_DYNAMIC_DRAW);
 
@@ -60,7 +59,7 @@ public final class Renderer3D {
         GL20.glEnableVertexAttribArray(3); // UV
         GL20.glVertexAttribPointer(3, 2, GL11.GL_FLOAT, false, stride, 40L);
 
-        GL30.glBindVertexArray(0);
+        GLUtil.bindVertexArray(0);
 
         shader = ShaderProgram.load("/assets/testvisuals/shaders/3d.vert",
                 "/assets/testvisuals/shaders/3d.frag", new String[]{"aPos", "aNormal", "aColor", "aUV"});
@@ -423,7 +422,7 @@ public final class Renderer3D {
         shader.setMat4("uMVP", mvp);
         shader.setMat4("uView", view);
 
-        GL30.glBindVertexArray(vao);
+        GLUtil.bindVertexArray(vao);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         buffer.flip();
         GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0L, buffer);
@@ -432,7 +431,7 @@ public final class Renderer3D {
 
         buffer.clear();
         vertexCount = 0;
-        GL30.glBindVertexArray(0);
+        GLUtil.bindVertexArray(0);
     }
 
     private void setPrimitive(int p) {

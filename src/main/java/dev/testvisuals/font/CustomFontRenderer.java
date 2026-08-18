@@ -55,6 +55,10 @@ public final class CustomFontRenderer {
         draw(renderer, text, centerX - measure(text, scale) / 2f, y, scale, color);
     }
 
+    public void drawRight(Renderer2D renderer, String text, float rightX, float y, float scale, int color) {
+        draw(renderer, text, rightX - measure(text, scale), y, scale, color);
+    }
+
     public void drawGradient(Renderer2D renderer, String text, float x, float y, float scale,
                              int topColor, int bottomColor) {
         int n = Math.max(1, text.length());
@@ -82,7 +86,7 @@ public final class CustomFontRenderer {
 
     public void drawGlow(Renderer2D renderer, String text, float x, float y, float scale,
                          int topColor, int bottomColor) {
-        int glow = 0x2600B4FF;
+        int glow = 0x30FFFFFF;
         float s = 2.5f;
         draw(renderer, text, x - s, y - s, scale, glow);
         draw(renderer, text, x + s, y - s, scale, glow);

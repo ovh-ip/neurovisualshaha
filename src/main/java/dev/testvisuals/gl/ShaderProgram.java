@@ -75,11 +75,11 @@ public final class ShaderProgram {
     }
 
     public void use() {
-        GL20.glUseProgram(programId);
+        GLUtil.useProgram(programId);
     }
 
     public void unbind() {
-        GL20.glUseProgram(0);
+        GLUtil.useProgram(0);
     }
 
     public int getProgramId() {

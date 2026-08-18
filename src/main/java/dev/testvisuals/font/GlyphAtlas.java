@@ -10,12 +10,15 @@ import java.awt.font.GlyphVector;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+
+import dev.testvisuals.gl.GLUtil;
 
 public final class GlyphAtlas {
 
@@ -47,10 +50,11 @@ public final class GlyphAtlas {
         for (int c = 0x400; c <= 0x45F; c++) {
             charset.append((char) c);
         }
-        charset.append("ёЁ«»—–…“”‘’\u00A0");
+        charset.append("ёЁ«»—–…“”‘’♥✦★✓✗\u00A0");
         String chars = charset.toString();
 
         Font font = pickFont();
+        Font fallbackFont = pickFallbackFont(font);
         BufferedImage image = new BufferedImage(ATLAS_SIZE, ATLAS_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
         try {
@@ -63,6 +67,7 @@ public final class GlyphAtlas {
 
             FontRenderContext frc = g.getFontRenderContext();
             FontMetrics fm = g.getFontMetrics(font);
+            FontMetrics fmFallback = g.getFontMetrics(fallbackFont);
             float maxAscent = fm.getMaxAscent();
             float maxDescent = fm.getMaxDescent();
 
@@ -73,7 +78,11 @@ public final class GlyphAtlas {
 
             for (int i = 0; i < chars.length(); i++) {
                 char c = chars.charAt(i);
-                GlyphVector gv = font.createGlyphVector(frc, new char[] {c});
+                Font activeFont = font.canDisplay(c) ? font : fallbackFont;
+                FontMetrics activeFm = activeFont == font ? fm : fmFallback;
+                g.setFont(activeFont);
+
+                GlyphVector gv = activeFont.createGlyphVector(frc, new char[] {c});
                 Rectangle2D bounds = gv.getVisualBounds();
                 int gw = (int) Math.ceil(bounds.getWidth()) + PADDING * 2;
                 int gh = (int) Math.ceil(bounds.getHeight()) + PADDING * 2;
@@ -88,7 +97,7 @@ public final class GlyphAtlas {
                         (x + gw) / (float) ATLAS_SIZE, (y + gh) / (float) ATLAS_SIZE,
                         gw, gh,
                         (float) bounds.getX(), (float) bounds.getY(),
-                        fm.charWidth(c)));
+                        activeFm.charWidth(c)));
                 x += gw;
                 rowHeight = Math.max(rowHeight, gh);
             }
@@ -100,7 +109,36 @@ public final class GlyphAtlas {
     }
 
     private static Font pickFont() {
-        String[] names = {"DejaVu Sans", "Liberation Sans", "Noto Sans", "Arial", "SansSerif"};
+        String[] preferred = {
+                "Comfortaa",
+                "Montserrat",
+                "SF Pro Display",
+                "Inter",
+                "Roboto",
+                "Segoe UI",
+                "DejaVu Sans",
+                "Liberation Sans",
+                "Noto Sans",
+                "Arial",
+                "SansSerif"
+        };
+        for (String name : preferred) {
+            Font font = new Font(name, Font.BOLD, FONT_SIZE);
+            if (font.canDisplay('A') && font.canDisplay('a')) {
+                return font;
+            }
+        }
+        return new Font(Font.SANS_SERIF, Font.BOLD, FONT_SIZE);
+    }
+
+    private static Font pickFallbackFont(Font primary) {
+        if (primary.getFamily().equals("Comfortaa") || primary.getFamily().equals("Montserrat")) {
+            return pickFirst(new String[] {"DejaVu Sans", "Noto Sans", "SansSerif"});
+        }
+        return primary;
+    }
+
+    private static Font pickFirst(String[] names) {
         for (String name : names) {
             Font font = new Font(name, Font.BOLD, FONT_SIZE);
             if (font.canDisplay('А') && font.canDisplay('я') && font.canDisplay('ё')) {
@@ -112,23 +150,39 @@ public final class GlyphAtlas {
 
     private static int upload(BufferedImage image) {
         int[] pixels = image.getRGB(0, 0, ATLAS_SIZE, ATLAS_SIZE, null, 0, ATLAS_SIZE);
-        ByteBuffer data = BufferUtils.createByteBuffer(ATLAS_SIZE * ATLAS_SIZE * 4);
-        for (int pixel : pixels) {
-            data.put((byte) ((pixel >>> 16) & 0xFF));
-            data.put((byte) ((pixel >>> 8) & 0xFF));
-            data.put((byte) (pixel & 0xFF));
-            data.put((byte) ((pixel >>> 24) & 0xFF));
+        ByteBuffer byteBuffer = BufferUtils.createByteBuffer(ATLAS_SIZE * ATLAS_SIZE * 4);
+        IntBuffer intBuffer = byteBuffer.asIntBuffer();
+
+        // Convert ARGB to little-endian RGBA (0xAABBGGRR in integer on LE architectures)
+        int total = ATLAS_SIZE * ATLAS_SIZE;
+        int[] formatted = new int[total];
+        for (int i = 0; i < total; i++) {
+            int p = pixels[i];
+            int a = (p >>> 24) & 0xFF;
+            int r = (p >>> 16) & 0xFF;
+            int g = (p >>> 8) & 0xFF;
+            int b = p & 0xFF;
+            formatted[i] = (a << 24) | (b << 16) | (g << 8) | r;
         }
-        data.flip();
+        intBuffer.put(formatted);
+        byteBuffer.position(0);
+
         int texture = GL11.glGenTextures();
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
+        GLUtil.bindTexture(texture);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
-        GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
+
+        // Reset pixel unpack state so Minecraft's texture atlas stride doesn't cause overflow
+        GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, 0);
+        GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, 0);
+        GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, 0);
+        GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
+
         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, ATLAS_SIZE, ATLAS_SIZE, 0,
-                GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, data);
+                GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, byteBuffer);
+        GLUtil.bindTexture(0);
         return texture;
     }
 

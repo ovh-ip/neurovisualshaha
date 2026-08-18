@@ -1,6 +1,7 @@
-# Gradle
+# Gradle & Run
 .gradle/
 build/
+run/
 
 # IDE
 .idea/

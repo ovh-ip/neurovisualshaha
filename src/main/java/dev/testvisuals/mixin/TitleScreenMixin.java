@@ -19,10 +19,9 @@ public abstract class TitleScreenMixin extends Screen {
         super(title);
     }
 
-    @Inject(method = "init", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "init", at = @At("HEAD"))
     private void testvisuals$init(CallbackInfo ci) {
         CustomMainMenu.setParentScreen((Screen) (Object) this);
-        ci.cancel();
     }
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
@@ -34,7 +33,8 @@ public abstract class TitleScreenMixin extends Screen {
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void testvisuals$mouseClicked(double mouseX, double mouseY, int button,
                                           CallbackInfoReturnable<Boolean> cir) {
-        CustomMainMenu.onClick(mouseX, mouseY, button);
-        cir.setReturnValue(true);
+        if (CustomMainMenu.onClick(mouseX, mouseY, button)) {
+            cir.setReturnValue(true);
+        }
     }
 }

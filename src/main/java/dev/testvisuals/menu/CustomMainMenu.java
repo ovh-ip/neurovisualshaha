@@ -3,11 +3,10 @@ package dev.testvisuals.menu;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
+
+import com.mojang.blaze3d.systems.RenderSystem;
 
 import dev.testvisuals.font.CustomFontRenderer;
 import dev.testvisuals.gl.GLUtil;
@@ -64,46 +63,52 @@ public final class CustomMainMenu {
 
         layout(width, height);
 
-        // Render dynamic background shader
-        GL11.glViewport(0, 0, fbWidth, fbHeight);
-        GL11.glClearColor(0.004f, 0.006f, 0.02f, 1f);
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+        // Ensure Minecraft's framebuffer is active and properly sized
+        if (client.getFramebuffer() != null) {
+            client.getFramebuffer().beginWrite(true);
+        }
 
+        RenderSystem.viewport(0, 0, fbWidth, fbHeight);
+        RenderSystem.clearColor(0.004f, 0.006f, 0.02f, 1f);
+        RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+
+        // Render dynamic background shader
         background.render(time, fbWidth, fbHeight, mouseX, mouseY);
 
         // 3D Scene Rendering
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthMask(true);
-        GL11.glEnable(GL11.GL_CULL_FACE);
+        GLUtil.enableDepth();
+        GLUtil.depthMask(true);
+        GLUtil.enableCull();
         GLUtil.enableBlend();
 
         renderScene3D(aspect, mouseX, mouseY, width, height, delta);
 
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDisable(GL11.GL_CULL_FACE);
+        GLUtil.disableDepth();
+        GLUtil.disableCull();
 
         // 2D Scene Rendering
         renderer2d.begin(width, height);
         renderScene2D(mouseX, mouseY, width, height, delta);
         renderer2d.flush();
 
-        GL30.glBindVertexArray(0);
-        GL20.glUseProgram(0);
+        // Restore clean OpenGL and Blaze3D state for Minecraft
+        GLUtil.restoreState();
     }
 
-    public static void onClick(double mouseX, double mouseY, int button) {
+    public static boolean onClick(double mouseX, double mouseY, int button) {
         if (button != 0) {
-            return;
+            return false;
         }
         if (parentScreen == null || MinecraftClient.getInstance().currentScreen != parentScreen) {
-            return;
+            return false;
         }
         for (MenuButton b : buttons) {
             if (b.contains((float) mouseX, (float) mouseY)) {
                 b.activate();
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     private static void init() {

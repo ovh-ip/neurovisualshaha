@@ -5,6 +5,13 @@ import java.util.Deque;
 
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL13;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL30;
+
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.Window;
@@ -29,13 +36,28 @@ public final class GLUtil {
         initialized = true;
     }
 
+    public static void bindVertexArray(int vao) {
+        GlStateManager._glBindVertexArray(vao);
+    }
+
+    public static void useProgram(int program) {
+        GlStateManager._glUseProgram(program);
+    }
+
+    public static void activeTexture(int texture) {
+        GlStateManager._activeTexture(texture);
+    }
+
+    public static void bindTexture(int texture) {
+        GlStateManager._bindTexture(texture);
+    }
+
     public static void pushScissor(float x, float y, float width, float height) {
         MinecraftClient client = MinecraftClient.getInstance();
         Window window = client.getWindow();
         if (window == null) return;
 
         double scale = window.getScaleFactor();
-        int fbHeight = window.getFramebufferHeight();
 
         int sx = (int) Math.floor(x * scale);
         int sy = (int) Math.floor((window.getScaledHeight() - (y + height)) * scale);
@@ -58,8 +80,8 @@ public final class GLUtil {
         ScissorBounds bounds = new ScissorBounds(sx, sy, sw, sh);
         scissorStack.push(bounds);
 
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(bounds.x, bounds.y, Math.max(0, bounds.width), Math.max(0, bounds.height));
+        GlStateManager._enableScissorTest();
+        GlStateManager._scissorBox(bounds.x, bounds.y, Math.max(0, bounds.width), Math.max(0, bounds.height));
     }
 
     public static void popScissor() {
@@ -68,44 +90,60 @@ public final class GLUtil {
         }
         scissorStack.pop();
         if (scissorStack.isEmpty()) {
-            GL11.glDisable(GL11.GL_SCISSOR_TEST);
+            GlStateManager._disableScissorTest();
         } else {
             ScissorBounds top = scissorStack.peek();
-            GL11.glScissor(top.x, top.y, Math.max(0, top.width), Math.max(0, top.height));
+            GlStateManager._scissorBox(top.x, top.y, Math.max(0, top.width), Math.max(0, top.height));
         }
     }
 
     public static void enableBlend() {
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
     }
 
     public static void enableAdditiveBlend() {
-        GL11.glEnable(GL11.GL_BLEND);
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+        RenderSystem.enableBlend();
+        RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE);
     }
 
     public static void disableBlend() {
-        GL11.glDisable(GL11.GL_BLEND);
+        RenderSystem.disableBlend();
     }
 
     public static void enableDepth() {
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        RenderSystem.enableDepthTest();
     }
 
     public static void disableDepth() {
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        RenderSystem.disableDepthTest();
     }
 
     public static void depthMask(boolean flag) {
-        GL11.glDepthMask(flag);
+        RenderSystem.depthMask(flag);
     }
 
     public static void enableCull() {
-        GL11.glEnable(GL11.GL_CULL_FACE);
+        RenderSystem.enableCull();
     }
 
     public static void disableCull() {
-        GL11.glDisable(GL11.GL_CULL_FACE);
+        RenderSystem.disableCull();
+    }
+
+    public static void restoreState() {
+        GlStateManager._glBindVertexArray(0);
+        GlStateManager._activeTexture(GL13.GL_TEXTURE0);
+        GlStateManager._bindTexture(0);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(true);
+        RenderSystem.enableCull();
+        RenderSystem.setShader((net.minecraft.client.gl.ShaderProgram) null);
+        if (!scissorStack.isEmpty()) {
+            scissorStack.clear();
+            GlStateManager._disableScissorTest();
+        }
     }
 }

@@ -2,10 +2,13 @@ package dev.testvisuals.menu;
 
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+
+import dev.testvisuals.gl.GLUtil;
 
 public final class Textures {
 
@@ -27,22 +30,37 @@ public final class Textures {
             }
         }
         int[] pixels = image.getRGB(0, 0, size, size, null, 0, size);
-        ByteBuffer data = BufferUtils.createByteBuffer(size * size * 4);
-        for (int pixel : pixels) {
-            data.put((byte) ((pixel >>> 16) & 0xFF));
-            data.put((byte) ((pixel >>> 8) & 0xFF));
-            data.put((byte) (pixel & 0xFF));
-            data.put((byte) ((pixel >>> 24) & 0xFF));
+        ByteBuffer byteBuffer = BufferUtils.createByteBuffer(size * size * 4);
+        IntBuffer intBuffer = byteBuffer.asIntBuffer();
+
+        int total = size * size;
+        int[] formatted = new int[total];
+        for (int i = 0; i < total; i++) {
+            int p = pixels[i];
+            int a = (p >>> 24) & 0xFF;
+            int r = (p >>> 16) & 0xFF;
+            int g = (p >>> 8) & 0xFF;
+            int b = p & 0xFF;
+            formatted[i] = (a << 24) | (b << 16) | (g << 8) | r;
         }
-        data.flip();
+        intBuffer.put(formatted);
+        byteBuffer.position(0);
+
         int texture = GL11.glGenTextures();
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
+        GLUtil.bindTexture(texture);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+
+        GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, 0);
+        GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_PIXELS, 0);
+        GL11.glPixelStorei(GL11.GL_UNPACK_SKIP_ROWS, 0);
+        GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
+
         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, size, size, 0,
-                GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, data);
+                GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, byteBuffer);
+        GLUtil.bindTexture(0);
         return texture;
     }
 }

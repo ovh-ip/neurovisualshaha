@@ -14,7 +14,6 @@ import org.lwjgl.opengl.GL30;
 import dev.testvisuals.gl.GLUtil;
 import dev.testvisuals.gl.MatrixStack2D;
 import dev.testvisuals.gl.ShaderProgram;
-import dev.testvisuals.util.ColorUtils;
 
 public final class Renderer2D {
 
@@ -28,6 +27,7 @@ public final class Renderer2D {
     private int vertexCount;
     private int mode = MODE_NONE;
     private int boundTexture = -1;
+    private float saturate = 1.0f;
     private int vao;
     private int vbo;
 
@@ -47,7 +47,7 @@ public final class Renderer2D {
         vao = GL30.glGenVertexArrays();
         vbo = GL15.glGenBuffers();
 
-        GL30.glBindVertexArray(vao);
+        GLUtil.bindVertexArray(vao);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, (long) buffer.capacity() * 4L, GL15.GL_DYNAMIC_DRAW);
 
@@ -60,7 +60,7 @@ public final class Renderer2D {
         GL20.glEnableVertexAttribArray(2);
         GL20.glVertexAttribPointer(2, 4, GL11.GL_FLOAT, false, FLOATS_PER_VERTEX * 4, 16L);
 
-        GL30.glBindVertexArray(0);
+        GLUtil.bindVertexArray(0);
 
         colorShader = ShaderProgram.load("/assets/testvisuals/shaders/quad.vert",
                 "/assets/testvisuals/shaders/quad_flat.frag", new String[]{"aPos", "aUV", "aColor"});
@@ -76,6 +76,13 @@ public final class Renderer2D {
         flush();
         orthoMatrix.setOrtho(0f, width, height, 0f, -100f, 100f);
         matrixStack.reset();
+    }
+
+    public void setSaturate(float s) {
+        if (Math.abs(this.saturate - s) > 0.001f) {
+            flush();
+            this.saturate = s;
+        }
     }
 
     public void pushMatrix() {
@@ -350,12 +357,13 @@ public final class Renderer2D {
         shader.setMat4("uMVP", combinedMatrix);
 
         if (mode == MODE_TEXTURED) {
-            GL13.glActiveTexture(GL13.GL_TEXTURE0);
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, boundTexture);
+            GLUtil.activeTexture(GL13.GL_TEXTURE0);
+            GLUtil.bindTexture(boundTexture);
             shader.setInt("uTex", 0);
+            shader.setFloat("uSaturate", saturate);
         }
 
-        GL30.glBindVertexArray(vao);
+        GLUtil.bindVertexArray(vao);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         buffer.flip();
         GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0L, buffer);
@@ -366,7 +374,7 @@ public final class Renderer2D {
         vertexCount = 0;
         mode = MODE_NONE;
         boundTexture = -1;
-        GL30.glBindVertexArray(0);
+        GLUtil.bindVertexArray(0);
     }
 
     private void prepareSdfShader(ShaderProgram shader) {
@@ -385,7 +393,7 @@ public final class Renderer2D {
         vertexRaw(x + w, y + h, 1f, 1f, 0xFFFFFFFF);
         vertexRaw(x, y + h, 0f, 1f, 0xFFFFFFFF);
 
-        GL30.glBindVertexArray(vao);
+        GLUtil.bindVertexArray(vao);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
         buffer.flip();
         GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, 0L, buffer);
@@ -394,7 +402,7 @@ public final class Renderer2D {
         buffer.clear();
         vertexCount = 0;
         mode = MODE_NONE;
-        GL30.glBindVertexArray(0);
+        GLUtil.bindVertexArray(0);
     }
 
     private void setShaderColor(ShaderProgram shader, String name, int argb) {
