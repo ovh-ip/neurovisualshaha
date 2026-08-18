@@ -24,7 +24,7 @@ public final class TopInfoHud extends HudComponent {
 
     @Override
     public float getWidth() {
-        return client.getWindow().getScaledWidth() - 20f;
+        return Math.min(280f, client.getWindow().getScaledWidth() - 20f);
     }
 
     @Override

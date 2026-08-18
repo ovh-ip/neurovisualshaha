@@ -15,6 +15,8 @@ public class InGameHudMixin {
 
     @Inject(method = "render", at = @At("TAIL"))
     private void testvisuals$renderHud(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+        // Draw vanilla DrawContext buffer first so hotbar, health, armor, crosshair are pristine
+        context.draw();
         HudManager.get().render(tickCounter.getTickDelta(false));
     }
 }

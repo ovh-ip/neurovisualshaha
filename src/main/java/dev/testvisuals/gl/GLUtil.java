@@ -132,15 +132,15 @@ public final class GLUtil {
     }
 
     public static void restoreState() {
-        GlStateManager._glBindVertexArray(0);
-        GlStateManager._activeTexture(GL13.GL_TEXTURE0);
-        GlStateManager._bindTexture(0);
-        RenderSystem.enableBlend();
+        bindVertexArray(0);
+        useProgram(0);
+        activeTexture(GL13.GL_TEXTURE0);
+        bindTexture(0);
+        enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.disableDepthTest();
-        RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        RenderSystem.setShader((net.minecraft.client.gl.ShaderProgram) null);
+        disableDepth();
+        depthMask(true);
+        enableCull();
         if (!scissorStack.isEmpty()) {
             scissorStack.clear();
             GlStateManager._disableScissorTest();

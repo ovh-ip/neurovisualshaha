@@ -37,13 +37,22 @@ public final class KeybindHud extends HudComponent {
 
     private List<Row> collectRows() {
         List<Row> rows = new ArrayList<>();
+        int count = 0;
         for (KeyBinding keyBinding : MinecraftClient.getInstance().options.allKeys) {
             if (keyBinding.isUnbound()) {
                 continue;
             }
-            String name = KeyBinding.getLocalizedName(keyBinding.getTranslationKey()).get().getString();
+            String translationKey = keyBinding.getTranslationKey();
+            if (translationKey.startsWith("key.hotbar.")) {
+                continue;
+            }
+            String name = KeyBinding.getLocalizedName(translationKey).get().getString();
             String key = keyBinding.getBoundKeyLocalizedText().getString();
             rows.add(new Row(name, key));
+            count++;
+            if (count >= 10) {
+                break;
+            }
         }
         return rows;
     }

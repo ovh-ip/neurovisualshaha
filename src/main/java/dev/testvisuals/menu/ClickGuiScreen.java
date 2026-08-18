@@ -8,6 +8,7 @@ import java.util.Map;
 import org.lwjgl.glfw.GLFW;
 
 import dev.testvisuals.font.CustomFontRenderer;
+import dev.testvisuals.gl.GLUtil;
 import dev.testvisuals.hud.Config;
 import dev.testvisuals.hud.HudManager;
 import dev.testvisuals.hud.HudStyle;
@@ -48,7 +49,6 @@ public class ClickGuiScreen extends Screen {
     }
 
     private final List<Area> areas = new ArrayList<>();
-    private final Map<String, Float> hoverT = new HashMap<>();
     private final Map<String, Float> knobT = new HashMap<>();
 
     private int tab;
@@ -85,7 +85,8 @@ public class ClickGuiScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        this.applyBlur();
+        context.draw();
+        areas.clear();
 
         MinecraftClient client = MinecraftClient.getInstance();
         float sw = client.getWindow().getScaledWidth();
@@ -93,8 +94,8 @@ public class ClickGuiScreen extends Screen {
 
         Renderer2D renderer = HudManager.get().renderer();
         CustomFontRenderer font = HudManager.get().font();
-        dev.testvisuals.gl.GLUtil.enableBlend();
-        dev.testvisuals.gl.GLUtil.disableDepth();
+        GLUtil.enableBlend();
+        GLUtil.disableDepth();
         renderer.begin(sw, sh);
 
         int overlay = ThemeManager.current() == ThemeManager.LIGHT ? 0x73FFFFFF : 0x8C000000;
@@ -104,6 +105,8 @@ public class ClickGuiScreen extends Screen {
         drawContent(renderer, font, mouseX, mouseY, delta);
 
         renderer.flush();
+        GLUtil.restoreState();
+
         super.render(context, mouseX, mouseY, delta);
     }
 
@@ -133,7 +136,6 @@ public class ClickGuiScreen extends Screen {
 
     private void drawContent(Renderer2D renderer, CustomFontRenderer font, float mouseX, float mouseY, float delta) {
         contentY = windowY + NAVBAR_H + PADDING;
-        float contentW = windowW - PADDING * 2f;
         switch (tab) {
             case 0 -> drawHudTab(renderer, font, delta);
             case 1 -> drawThemesTab(renderer, font, mouseX, mouseY, delta);
